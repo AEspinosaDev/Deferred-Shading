@@ -1,0 +1,8 @@
+﻿  auxiliar.cpp
+  main.cpp
+D:\URJC\SEGUNDO\1º CUATRIMESTRE\INFORMATICA GRAFICA\Deferred shading\Visual2015\P4GLSL\scr\main.cpp(356,12): warning C4553: '==': result of expression not used; did you intend '='?
+  Generating code
+  Previous IPDB not found, fall back to full compilation.
+  All 239 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Finished generating code
+  P4GLSL.vcxproj -> D:\URJC\SEGUNDO\1º CUATRIMESTRE\INFORMATICA GRAFICA\Deferred shading\Visual2015\P4GLSL\Release\P4GLSL.exe

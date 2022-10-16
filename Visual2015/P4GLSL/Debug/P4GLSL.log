@@ -1,4 +1,5 @@
 ﻿cl : command line warning D9035: option 'Gm' has been deprecated and will be removed in a future release
   main.cpp
-D:\URJC\SEGUNDO\1º CUATRIMESTRE\INFORMATICA GRAFICA\Deferred shading\Visual2015\P4GLSL\scr\main.cpp(356,12): warning C4553: '==': result of expression not used; did you intend '='?
+D:\URJC\SEGUNDO\1º CUATRIMESTRE\INFORMATICA GRAFICA\Deferred shading\Visual2015\P4GLSL\scr\main.cpp(369,12): warning C4553: '==': result of expression not used; did you intend '='?
+auxiliar.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/SAFESEH' specification
   P4GLSL.vcxproj -> D:\URJC\SEGUNDO\1º CUATRIMESTRE\INFORMATICA GRAFICA\Deferred shading\Visual2015\P4GLSL\Debug\P4GLSL.exe

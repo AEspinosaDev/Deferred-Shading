@@ -13,6 +13,8 @@
 #include <cstdlib>
 #include "BOX.h"
 #include "PLANE.h"
+#include <vector>
+#include <string>
 
 
 #define RAND_SEED 31415926
@@ -26,6 +28,8 @@
 glm::mat4	proj = glm::mat4(1.0f);
 glm::mat4	view = glm::mat4(1.0f);
 glm::mat4	model = glm::mat4(1.0f);
+
+
 
 
 //////////////////////////////////////////////////////////////
@@ -84,20 +88,21 @@ void renderCube();
 
 //Funciones de inicialización y destrucción
 void initContext(int argc, char** argv);
+void initLights();
 void initOGL();
-void initShaderGP(const char *vname, const char *fname);
+void initShaderGP(const char* vname, const char* fname);
 void initObj();
 void destroy();
 
 
 //Carga el shader indicado, devuele el ID del shader
 //!Por implementar
-GLuint loadShader(const char *fileName, GLenum type);
+GLuint loadShader(const char* fileName, GLenum type);
 
 //Crea una textura, la configura, la sube a OpenGL, 
 //y devuelve el identificador de la textura 
 //!!Por implementar
-unsigned int loadTex(const char *fileName);
+unsigned int loadTex(const char* fileName);
 
 //////////////////////////////////////////////////////////////
 // Nuevas variables auxiliares
@@ -134,14 +139,22 @@ void initPlane();
 void initFBO();
 void resizeFBO(unsigned int w, unsigned int h);
 
+//////////////////////////////////////////////////////////////
+// Variables de las luces
+//////////////////////////////////////////////////////////////
+const unsigned int NUM_LIGHTS = 32;
+std::vector<glm::vec3> lightPositions;
+std::vector<glm::vec3> lightColors;
+
 
 int main(int argc, char** argv)
 {
 	std::locale::global(std::locale("spanish"));// acentos ;)
 
+	initLights();
 	initContext(argc, argv);
 	initOGL();
-	
+
 	initShaderGP("../shaders_P4/deferredGPass.vert", "../shaders_P4/deferredGPass.frag");
 	initObj();
 
@@ -181,7 +194,7 @@ void initContext(int argc, char** argv)
 		exit(-1);
 	}
 
-	const GLubyte *oglVersion = glGetString(GL_VERSION);
+	const GLubyte* oglVersion = glGetString(GL_VERSION);
 	std::cout << "This system supports OpenGL Version: " << oglVersion << std::endl;
 
 	glutReshapeFunc(resizeFunc);
@@ -248,7 +261,7 @@ void destroy()
 	glDeleteTextures(1, &normalBuffTexId);
 }
 
-void initShaderGP(const char *vname, const char *fname)
+void initShaderGP(const char* vname, const char* fname)
 {
 	vshader = loadShader(vname, GL_VERTEX_SHADER);
 	fshader = loadShader(fname, GL_FRAGMENT_SHADER);
@@ -273,7 +286,7 @@ void initShaderGP(const char *vname, const char *fname)
 		GLint logLen;
 		glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLen);
 
-		char *logString = new char[logLen];
+		char* logString = new char[logLen];
 		glGetProgramInfoLog(program, logLen, NULL, logString);
 		std::cout << "Error: " << logString << std::endl;
 		delete logString;
@@ -306,7 +319,7 @@ void initObj()
 	{
 		glGenBuffers(1, &posVBO);
 		glBindBuffer(GL_ARRAY_BUFFER, posVBO);
-		glBufferData(GL_ARRAY_BUFFER, cubeNVertex*sizeof(float) * 3,
+		glBufferData(GL_ARRAY_BUFFER, cubeNVertex * sizeof(float) * 3,
 			cubeVertexPos, GL_STATIC_DRAW);
 		glVertexAttribPointer(inPos, 3, GL_FLOAT, GL_FALSE, 0, 0);
 		glEnableVertexAttribArray(inPos);
@@ -316,7 +329,7 @@ void initObj()
 	{
 		glGenBuffers(1, &colorVBO);
 		glBindBuffer(GL_ARRAY_BUFFER, colorVBO);
-		glBufferData(GL_ARRAY_BUFFER, cubeNVertex*sizeof(float) * 3,
+		glBufferData(GL_ARRAY_BUFFER, cubeNVertex * sizeof(float) * 3,
 			cubeVertexColor, GL_STATIC_DRAW);
 		glVertexAttribPointer(inColor, 3, GL_FLOAT, GL_FALSE, 0, 0);
 		glEnableVertexAttribArray(inColor);
@@ -326,7 +339,7 @@ void initObj()
 	{
 		glGenBuffers(1, &normalVBO);
 		glBindBuffer(GL_ARRAY_BUFFER, normalVBO);
-		glBufferData(GL_ARRAY_BUFFER, cubeNVertex*sizeof(float) * 3,
+		glBufferData(GL_ARRAY_BUFFER, cubeNVertex * sizeof(float) * 3,
 			cubeVertexNormal, GL_STATIC_DRAW);
 		glVertexAttribPointer(inNormal, 3, GL_FLOAT, GL_FALSE, 0, 0);
 		glEnableVertexAttribArray(inNormal);
@@ -337,7 +350,7 @@ void initObj()
 	{
 		glGenBuffers(1, &texCoordVBO);
 		glBindBuffer(GL_ARRAY_BUFFER, texCoordVBO);
-		glBufferData(GL_ARRAY_BUFFER, cubeNVertex*sizeof(float) * 2,
+		glBufferData(GL_ARRAY_BUFFER, cubeNVertex * sizeof(float) * 2,
 			cubeVertexTexCoord, GL_STATIC_DRAW);
 		glVertexAttribPointer(inTexCoord, 2, GL_FLOAT, GL_FALSE, 0, 0);
 		glEnableVertexAttribArray(inTexCoord);
@@ -346,7 +359,7 @@ void initObj()
 	glGenBuffers(1, &triangleIndexVBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, triangleIndexVBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-		cubeNTriangleIndex*sizeof(unsigned int) * 3, cubeTriangleIndex,
+		cubeNTriangleIndex * sizeof(unsigned int) * 3, cubeTriangleIndex,
 		GL_STATIC_DRAW);
 
 	model = glm::mat4(1.0f);
@@ -355,18 +368,30 @@ void initObj()
 	//emiTexId = loadTex("../img/emissive.png");
 	specTexId == loadTex("../img/SeamlessWood-GlossMap.tif");
 }
+void initLights() {
+	srand(12);
+	for (size_t i = 0; i < NUM_LIGHTS; i++)
+	{
+		glm::vec3 randomPos = glm::vec3(((rand() % 100) / 200.0f) + 0.5, ((rand() % 100) / 200.0f) + 0.5, ((rand() % 100) / 200.0f) + 0.5);
+		glm::vec3 randomClr = glm::vec3(((rand() % 100) / 200.0f) + 0.5, ((rand() % 100) / 200.0f) + 0.5, ((rand() % 100) / 200.0f) + 0.5);
+		lightPositions.push_back(glm::vec3(randomPos));
+		lightColors.push_back(randomClr);
 
-GLuint loadShader(const char *fileName, GLenum type)
+	}
+
+}
+
+GLuint loadShader(const char* fileName, GLenum type)
 {
 	unsigned int fileLen;
-	char *source = loadStringFromFile(fileName, fileLen);
+	char* source = loadStringFromFile(fileName, fileLen);
 
 	//////////////////////////////////////////////
 	//Creación y compilación del Shader
 	GLuint shader;
 	shader = glCreateShader(type);
 	glShaderSource(shader, 1,
-		(const GLchar **)&source, (const GLint *)&fileLen);
+		(const GLchar**)&source, (const GLint*)&fileLen);
 	glCompileShader(shader);
 	delete source;
 
@@ -379,7 +404,7 @@ GLuint loadShader(const char *fileName, GLenum type)
 		GLint logLen;
 		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLen);
 
-		char *logString = new char[logLen];
+		char* logString = new char[logLen];
 		glGetShaderInfoLog(shader, logLen, NULL, logString);
 		std::cout << "Error: " << logString << std::endl;
 		delete logString;
@@ -391,9 +416,9 @@ GLuint loadShader(const char *fileName, GLenum type)
 	return shader;
 }
 
-unsigned int loadTex(const char *fileName)
+unsigned int loadTex(const char* fileName)
 {
-	unsigned char *map;
+	unsigned char* map;
 	unsigned int w, h;
 	map = loadTexture(fileName, w, h);
 
@@ -412,7 +437,7 @@ unsigned int loadTex(const char *fileName)
 	delete[] map;
 	glGenerateMipmap(GL_TEXTURE_2D);
 
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
@@ -439,7 +464,7 @@ void renderFunc()
 
 	if (uSpecTex != -1)
 	{
-		glActiveTexture(GL_TEXTURE0+1);
+		glActiveTexture(GL_TEXTURE0 + 1);
 		glBindTexture(GL_TEXTURE_2D, specTexId);
 		glUniform1i(uSpecTex, 1);
 	}
@@ -466,10 +491,10 @@ void renderFunc()
 		transVec.y *= (std::rand() % 2) ? 1.0f : -1.0f;
 		transVec.z *= (std::rand() % 2) ? 1.0f : -1.0f;
 
-		model = glm::rotate(glm::mat4(1.0f), angle*2.0f*size, axis);
+		model = glm::rotate(glm::mat4(1.0f), angle * 2.0f * size, axis);
 		model = glm::translate(model, transVec);
-		model = glm::rotate(model, angle*2.0f*size, axis);
-		model = glm::scale(model, glm::vec3(1.0f / (size*0.7f)));
+		model = glm::rotate(model, angle * 2.0f * size, axis);
+		model = glm::scale(model, glm::vec3(1.0f / (size * 0.7f)));
 		renderCube();
 	}
 	//*/
@@ -478,6 +503,32 @@ void renderFunc()
 
 
 	glUseProgram(lightPassProgram);
+	for (unsigned int i = 0; i < NUM_LIGHTS; i++)
+	{
+		auto pos_uniform = "lights[" + std::to_string(i) + "].Position";
+		auto color_uniform = "lights[" + std::to_string(i) + "].Position";
+
+		/*glm::vec3 v = glm::vec3(1, 1, 1);
+		glm::vec3 vc = glm::vec3(1, 0, 0);*/
+		
+		glUniform3fv(glGetUniformLocation(lightPassProgram,pos_uniform.c_str()), 1, &lightPositions[i][0]);
+		//glUniform3fv(glGetUniformLocation(lightPassProgram,pos_uniform.c_str()), 1, &v[0]);
+		glUniform3fv(glGetUniformLocation(lightPassProgram, color_uniform.c_str()), 1, &lightColors[i][0]);
+		//glUniform3fv(glGetUniformLocation(lightPassProgram, color_uniform.c_str()), 1, &vc[0]);
+
+		
+		//shaderLightingPass.setVec3("lights[" + std::to_string(i) + "].Color", lightColors[i]);
+		// update attenuation parameters and calculate radius
+		//const float constant = 1.0f; // note that we don't send this to the shader, we assume it is always 1.0 (in our case)
+		//const float linear = 0.7f;
+		//const float quadratic = 1.8f;
+		//shaderLightingPass.setFloat("lights[" + std::to_string(i) + "].Linear", linear);
+		//shaderLightingPass.setFloat("lights[" + std::to_string(i) + "].Quadratic", quadratic);
+		//// then calculate radius of light volume/sphere
+		//const float maxBrightness = std::fmaxf(std::fmaxf(lightColors[i].r, lightColors[i].g), lightColors[i].b);
+		//float radius = (-linear + std::sqrt(linear * linear - 4 * quadratic * (constant - (256.0f / 5.0f) * maxBrightness))) / (2.0f * quadratic);
+		//shaderLightingPass.setFloat("lights[" + std::to_string(i) + "].Radius", radius);
+	}
 
 	if (uColorTexPP != -1)
 	{
@@ -498,9 +549,10 @@ void renderFunc()
 		glUniform1i(uVertexTexPP, 2);
 	}
 
+
+
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_DEPTH_TEST);
-
 
 
 
@@ -522,14 +574,14 @@ void renderCube()
 
 	if (uModelViewMat != -1)
 		glUniformMatrix4fv(uModelViewMat, 1, GL_FALSE,
-		&(modelView[0][0]));
+			&(modelView[0][0]));
 	if (uModelViewProjMat != -1)
 		glUniformMatrix4fv(uModelViewProjMat, 1, GL_FALSE,
-		&(modelViewProj[0][0]));
+			&(modelViewProj[0][0]));
 	if (uNormalMat != -1)
 		glUniformMatrix4fv(uNormalMat, 1, GL_FALSE,
-		&(normal[0][0]));
-	
+			&(normal[0][0]));
+
 	glBindVertexArray(vao);
 	glDrawElements(GL_TRIANGLES, cubeNTriangleIndex * 3,
 		GL_UNSIGNED_INT, (void*)0);
@@ -541,7 +593,7 @@ void resizeFunc(int width, int height)
 {
 	glViewport(0, 0, width, height);
 
-	proj = glm::perspective(glm::radians(60.0f), float(width) /float(height), 1.0f, 50.0f);
+	proj = glm::perspective(glm::radians(60.0f), float(width) / float(height), 1.0f, 50.0f);
 
 	resizeFBO(width, height);
 
@@ -552,13 +604,13 @@ void resizeFunc(int width, int height)
 void idleFunc()
 {
 	angle = (angle > 3.141592f * 2.0f) ? 0 : angle + 0.0002f;
-	
+
 	glutPostRedisplay();
 }
 
-void keyboardFunc(unsigned char key, int x, int y){}
+void keyboardFunc(unsigned char key, int x, int y) {}
 
-void mouseFunc(int button, int state, int x, int y){}
+void mouseFunc(int button, int state, int x, int y) {}
 
 
 void initShaderLP(const char* vname, const char* fname)
@@ -603,7 +655,7 @@ void initPlane()
 	glGenVertexArrays(1, &planeVAO);
 
 	glBindVertexArray(planeVAO);
-	
+
 	glGenBuffers(1, &planeVertexVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, planeVertexVBO);
 	glBufferData(GL_ARRAY_BUFFER, planeNVertex * sizeof(float) * 3, planeVertexPos, GL_STATIC_DRAW);
@@ -630,7 +682,7 @@ void initFBO()
 void resizeFBO(unsigned int w, unsigned int h)
 {
 	glBindTexture(GL_TEXTURE_2D, colorBuffTexId);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0,GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -646,13 +698,13 @@ void resizeFBO(unsigned int w, unsigned int h)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 	glBindTexture(GL_TEXTURE_2D, depthBuffTexId);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, w, h, 0,GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, w, h, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D, colorBuffTexId, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorBuffTexId, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, normalBuffTexId, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, vertexBuffTexId, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthBuffTexId, 0);

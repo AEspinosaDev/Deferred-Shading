@@ -142,7 +142,7 @@ void resizeFBO(unsigned int w, unsigned int h);
 //////////////////////////////////////////////////////////////
 // Variables de las luces
 //////////////////////////////////////////////////////////////
-const unsigned int NUM_LIGHTS = 32;
+const unsigned int NUM_LIGHTS = 2;
 std::vector<glm::vec3> lightPositions;
 std::vector<glm::vec3> lightColors;
 
@@ -372,11 +372,21 @@ void initLights() {
 	srand(12);
 	for (size_t i = 0; i < NUM_LIGHTS; i++)
 	{
-		glm::vec3 randomPos = glm::vec3(((rand() % 100) / 200.0f) + 0.5, ((rand() % 100) / 200.0f) + 0.5, ((rand() % 100) / 200.0f) + 0.5);
+		
+		glm::vec3 randomPos = glm::vec3(5,0,-20);
 		glm::vec3 randomClr = glm::vec3(((rand() % 100) / 200.0f) + 0.5, ((rand() % 100) / 200.0f) + 0.5, ((rand() % 100) / 200.0f) + 0.5);
 		lightPositions.push_back(glm::vec3(randomPos));
 		lightColors.push_back(randomClr);
 
+		randomPos = glm::vec3(-5, 0, -20);
+		randomClr = glm::vec3(((rand() % 100) / 200.0f) + 0.5, ((rand() % 100) / 200.0f) + 0.5, ((rand() % 100) / 200.0f) + 0.5);
+		lightPositions.push_back(glm::vec3(randomPos));
+		lightColors.push_back(randomClr);
+
+		randomPos = glm::vec3(-5, 2, -20);
+		randomClr = glm::vec3(((rand() % 100) / 200.0f) + 0.5, ((rand() % 100) / 200.0f) + 0.5, ((rand() % 100) / 200.0f) + 0.5);
+		lightPositions.push_back(glm::vec3(randomPos));
+		lightColors.push_back(randomClr);
 	}
 
 }
@@ -464,6 +474,7 @@ void renderFunc()
 
 	if (uSpecTex != -1)
 	{
+		
 		glActiveTexture(GL_TEXTURE0 + 1);
 		glBindTexture(GL_TEXTURE_2D, specTexId);
 		glUniform1i(uSpecTex, 1);
@@ -497,6 +508,14 @@ void renderFunc()
 		model = glm::scale(model, glm::vec3(1.0f / (size * 0.7f)));
 		renderCube();
 	}
+	for (unsigned int i = 0; i < NUM_LIGHTS; i++)
+	{
+
+		model = glm::translate(glm::mat4(1.0f), lightPositions[i]);
+		//model = glm::scale(model, glm::vec3(1f));
+		renderCube();
+	}
+
 	//*/
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -506,28 +525,11 @@ void renderFunc()
 	for (unsigned int i = 0; i < NUM_LIGHTS; i++)
 	{
 		auto pos_uniform = "lights[" + std::to_string(i) + "].Position";
-		auto color_uniform = "lights[" + std::to_string(i) + "].Position";
-
-		/*glm::vec3 v = glm::vec3(1, 1, 1);
-		glm::vec3 vc = glm::vec3(1, 0, 0);*/
+		auto color_uniform = "lights[" + std::to_string(i) + "].Color";
 		
 		glUniform3fv(glGetUniformLocation(lightPassProgram,pos_uniform.c_str()), 1, &lightPositions[i][0]);
-		//glUniform3fv(glGetUniformLocation(lightPassProgram,pos_uniform.c_str()), 1, &v[0]);
 		glUniform3fv(glGetUniformLocation(lightPassProgram, color_uniform.c_str()), 1, &lightColors[i][0]);
-		//glUniform3fv(glGetUniformLocation(lightPassProgram, color_uniform.c_str()), 1, &vc[0]);
-
 		
-		//shaderLightingPass.setVec3("lights[" + std::to_string(i) + "].Color", lightColors[i]);
-		// update attenuation parameters and calculate radius
-		//const float constant = 1.0f; // note that we don't send this to the shader, we assume it is always 1.0 (in our case)
-		//const float linear = 0.7f;
-		//const float quadratic = 1.8f;
-		//shaderLightingPass.setFloat("lights[" + std::to_string(i) + "].Linear", linear);
-		//shaderLightingPass.setFloat("lights[" + std::to_string(i) + "].Quadratic", quadratic);
-		//// then calculate radius of light volume/sphere
-		//const float maxBrightness = std::fmaxf(std::fmaxf(lightColors[i].r, lightColors[i].g), lightColors[i].b);
-		//float radius = (-linear + std::sqrt(linear * linear - 4 * quadratic * (constant - (256.0f / 5.0f) * maxBrightness))) / (2.0f * quadratic);
-		//shaderLightingPass.setFloat("lights[" + std::to_string(i) + "].Radius", radius);
 	}
 
 	if (uColorTexPP != -1)
